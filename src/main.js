@@ -4,6 +4,11 @@ let engineOn = false;
 let fmSynth = null;
 let lineX = null; 
 let lineY = null;
+let hudLed = null;
+let hudX = null;
+let hudY = null;
+
+let releaseTime = 500; // ms for audio fade out
 
 // normalized pointer coords (0..1 across the window)
 let normX = 0.5;
@@ -43,14 +48,28 @@ class FMSynth {
     this.output.connect(destination);
   }
 
+  turnOn() {
+    if (!this.audioCtx) return;
+    const now = this.audioCtx.currentTime;
+    this.output.gain.cancelScheduledValues(now);
+    this.output.gain.linearRampToValueAtTime(0.2, now + 0.05);
+  }
+
+  turnOff(release) {
+    if (!this.audioCtx) return;
+    const now = this.audioCtx.currentTime;
+    this.output.gain.cancelScheduledValues(now);
+    this.output.gain.setTargetAtTime(0, now, release / 1000 / 4); // Exponential release
+  }
+
   setCarrierFrequency(value) {
     const now = this.audioCtx.currentTime;
-    this.carrier.frequency.setTargetAtTime(value, now, 0.01);
+    this.carrier.frequency.setTargetAtTime(value, now, 0.02);
   }
 
   setModFrequency(value) {
     const now = this.audioCtx.currentTime;
-    this.modulator.frequency.setTargetAtTime(value, now, 0.01);
+    this.modulator.frequency.setTargetAtTime(value, now, 0.02);
     this._updateModGain();
   }
 
@@ -64,7 +83,7 @@ class FMSynth {
     const I = this.modIndex ?? 0;
     const df = I * fm;
     const now = this.audioCtx.currentTime;
-    this.modGain.gain.setTargetAtTime(df, now, 0.01);
+    this.modGain.gain.setTargetAtTime(df, now, 0.02);
   }
 }
 
@@ -96,15 +115,27 @@ function toggleAudioEngine() {
     fmSynth.connect(audioCtx.destination);
     fmSynth.setModIndex(3);
 
+    fmSynth.turnOn();
     engineOn = true;
     updateFMFromPointer();
+    updateHud();
     console.log("FM engine started");
   } else if (audioCtx.state === "suspended") {
     audioCtx.resume();
+    fmSynth.turnOn();
     engineOn = true;
+    updateHud();
     console.log("AudioContext resumed");
+  } else if (engineOn) {
+    fmSynth.turnOff(releaseTime);
+    engineOn = false;
+    updateHud();
+    console.log("FM engine stopped");
   } else {
-    console.log("FM engine already running");
+    fmSynth.turnOn();
+    engineOn = true;
+    updateHud();
+    console.log("FM engine re-started");
   }
 }
 
@@ -119,11 +150,6 @@ function handlePointerMove(ev) {
   normX = clamp01(x / w);
   normY = clamp01(y / h);
 
-  // *** Console logging X Y and normalized X Y ***
-  console.log(
-    `X:${x.toFixed(1)}  Y:${y.toFixed(1)}  |  normX:${normX.toFixed(3)}  normY:${normY.toFixed(3)}`
-  );
-
   if (lineX) {
     lineX.style.transform = `translateX(${x}px)`;
   }
@@ -132,6 +158,19 @@ function handlePointerMove(ev) {
   }
 
   updateFMFromPointer();
+  updateHud();
+}
+
+function updateHud() {
+  if (!hudLed) return;
+
+  hudLed.style.backgroundColor = engineOn ? "lime" : "#333";
+
+  const carrierFreq = lerp(40, 2000, normX);
+  const modFreq = lerp(20, 1000, normY);
+
+  hudX.textContent = `x: ${normX.toFixed(2)} carrier: ${carrierFreq.toFixed(1)} Hz`;
+  hudY.textContent = `y: ${normY.toFixed(2)} mod: ${modFreq.toFixed(1)} Hz`;
 }
 
 function init() {
@@ -146,6 +185,23 @@ function init() {
   lineY = document.createElement("div");
   lineY.className = "line-y";
   document.body.appendChild(lineY);
+
+  // create HUD
+  const hudContainer = document.createElement("div");
+  hudContainer.className = "hud";
+  
+  hudLed = document.createElement("div");
+  hudLed.className = "hud-led";
+
+  hudX = document.createElement("div");
+  hudY = document.createElement("div");
+
+  hudContainer.appendChild(hudLed);
+  hudContainer.appendChild(hudX);
+  hudContainer.appendChild(hudY);
+  document.body.appendChild(hudContainer);
+
+  updateHud();
 
   window.addEventListener("pointermove", handlePointerMove, { passive: true });
 

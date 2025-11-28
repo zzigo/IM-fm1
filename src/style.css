@@ -27,3 +27,27 @@ body {
   top: 0; /* Start at the edge */
   background-color: red;
 }
+
+.hud {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  color: #eee;
+  font-family: monospace;
+  font-size: 12px;
+  background-color: transparent;
+  padding: 5px 8px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.hud-led {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #333; /* Off by default */
+}
+}
