@@ -174,10 +174,8 @@ function updateHud() {
 }
 
 function init() {
-  console.log("HELLO WORLD");
 
   //create crosslines
-
   lineX = document.createElement("div");
   lineX.className = "line-x";
   document.body.appendChild(lineX);
@@ -205,8 +203,12 @@ function init() {
 
   window.addEventListener("pointermove", handlePointerMove, { passive: true });
 
-  window.addEventListener("click", () => {
-    console.log("WINDOW CLICKED");
+  // --- Mobile Device Compatibility ---
+  // Use 'pointerdown' instead of 'click' to start the audio engine.
+  // The 'click' event can be unreliable on mobile browsers, as it may not fire
+  // if the user moves their finger even slightly. 'pointerdown' (or 'touchstart')
+  // is a more direct and reliable user gesture for initializing the Web Audio API.
+  window.addEventListener("pointerdown", () => {
     toggleAudioEngine();
   });
 }
