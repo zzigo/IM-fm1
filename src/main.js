@@ -15,6 +15,7 @@ let normX = 0.5;
 let normY = 0.5;
 
 // FM Synth definition class
+// Facade Pattern: Simplifies the complex Web Audio API into a simple interface.
 class FMSynth {
   constructor(audioCtx) {
     this.audioCtx = audioCtx;
@@ -106,7 +107,37 @@ function updateFMFromPointer() {
   fmSynth.setModFrequency(modFreq);
 }
 
+function startEngine() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    fmSynth = new FMSynth(audioCtx);
+    fmSynth.connect(audioCtx.destination);
+    fmSynth.setModIndex(3);
+    console.log("FM engine initialized");
+  } else if (audioCtx.state === "suspended") {
+    audioCtx.resume().then(() => {
+        console.log("AudioContext resumed");
+    });
+  }
+
+  fmSynth.turnOn();
+  engineOn = true;
+  updateFMFromPointer();
+  updateHud();
+  console.log("FM engine started");
+}
+
+function stopEngine() {
+  if (engineOn) {
+    fmSynth.turnOff(releaseTime);
+    engineOn = false;
+    updateHud();
+    console.log("FM engine stopped");
+  }
+}
+
 // turn on the FM engine once, on first click
+// Singleton Pattern: Ensures only one instance of AudioContext and FMSynth is created.
 function toggleAudioEngine() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -174,8 +205,10 @@ function updateHud() {
 }
 
 function init() {
+  console.log("HELLO WORLD");
 
   //create crosslines
+
   lineX = document.createElement("div");
   lineX.className = "line-x";
   document.body.appendChild(lineX);
@@ -201,6 +234,7 @@ function init() {
 
   updateHud();
 
+  // Observer Pattern: Listens for user input events to update the application.
   window.addEventListener("pointermove", handlePointerMove, { passive: true });
 
   // --- Mobile Device Compatibility ---
@@ -208,9 +242,19 @@ function init() {
   // The 'click' event can be unreliable on mobile browsers, as it may not fire
   // if the user moves their finger even slightly. 'pointerdown' (or 'touchstart')
   // is a more direct and reliable user gesture for initializing the Web Audio API.
+  /*
   window.addEventListener("pointerdown", () => {
     toggleAudioEngine();
   });
+  */
+
+  // New "hold" mode using pointer events for mouse and touch
+  window.addEventListener("pointerdown", (e) => {
+    handlePointerMove(e); // Update position on press
+    startEngine();
+  });
+  window.addEventListener("pointerup", stopEngine);
+  window.addEventListener("pointerleave", stopEngine); // Stop when mouse leaves the window
 }
 
 window.addEventListener("DOMContentLoaded", init);
