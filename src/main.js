@@ -204,6 +204,16 @@ function updateHud() {
   hudY.textContent = `y: ${normY.toFixed(2)} mod: ${modFreq.toFixed(1)} Hz`;
 }
 
+function toggleFullScreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+}
+
 function init() {
   console.log("HELLO WORLD");
 
@@ -255,6 +265,20 @@ function init() {
   });
   window.addEventListener("pointerup", stopEngine);
   window.addEventListener("pointerleave", stopEngine); // Stop when mouse leaves the window
+
+  // fullscreen on double-click / double-tap
+  window.addEventListener("dblclick", toggleFullScreen);
+
+  let lastTap = 0;
+  document.documentElement.addEventListener("touchend", function (event) {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTap;
+    if (tapLength < 300 && tapLength > 0) {
+      event.preventDefault();
+      toggleFullScreen();
+    }
+    lastTap = currentTime;
+  });
 }
 
 window.addEventListener("DOMContentLoaded", init);
