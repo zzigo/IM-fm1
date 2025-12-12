@@ -247,38 +247,32 @@ function init() {
   // Observer Pattern: Listens for user input events to update the application.
   window.addEventListener("pointermove", handlePointerMove, { passive: true });
 
-  // --- Mobile Device Compatibility ---
-  // Use 'pointerdown' instead of 'click' to start the audio engine.
-  // The 'click' event can be unreliable on mobile browsers, as it may not fire
-  // if the user moves their finger even slightly. 'pointerdown' (or 'touchstart')
-  // is a more direct and reliable user gesture for initializing the Web Audio API.
-  /*
-  window.addEventListener("pointerdown", () => {
-    toggleAudioEngine();
-  });
-  */
-
-  // New "hold" mode using pointer events for mouse and touch
+  // --- Combined interaction logic for hold-to-play and double-tap-fullscreen ---
+  let tapCount = 0;
   window.addEventListener("pointerdown", (e) => {
-    handlePointerMove(e); // Update position on press
-    startEngine();
-  });
-  window.addEventListener("pointerup", stopEngine);
-  window.addEventListener("pointerleave", stopEngine); // Stop when mouse leaves the window
+    handlePointerMove(e);
 
-  // fullscreen on double-click / double-tap
-  window.addEventListener("dblclick", toggleFullScreen);
+    tapCount++;
 
-  let lastTap = 0;
-  document.documentElement.addEventListener("touchend", function (event) {
-    const currentTime = new Date().getTime();
-    const tapLength = currentTime - lastTap;
-    if (tapLength < 300 && tapLength > 0) {
-      event.preventDefault();
+    setTimeout(() => {
+      if (tapCount > 0) {
+        tapCount--;
+      }
+    }, 300); // Reset tap count after 300ms
+
+    if (tapCount >= 2) {
+      // Double tap
+      tapCount = 0; // Reset immediately
       toggleFullScreen();
+      e.preventDefault();
+    } else {
+      // Single tap
+      startEngine();
     }
-    lastTap = currentTime;
   });
+
+  window.addEventListener("pointerup", stopEngine);
+  window.addEventListener("pointerleave", stopEngine);
 }
 
 window.addEventListener("DOMContentLoaded", init);
